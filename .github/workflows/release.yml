@@ -1,0 +1,104 @@
+name: Release Obsidian Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Bump version using npm version (this also updates package.json)
+          npm version ${{ inputs.version_type }} --no-git-tag-version
+
+          # Get new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          # Update manifest.json and versions.json using the existing script
+          npm run version
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Commit version bump
+        run: |
+          git add package.json package-lock.json manifest.json versions.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
+          git push
+
+      - name: Create tag
+        run: |
+          git tag "${{ steps.version.outputs.new_version }}"
+          git push origin "${{ steps.version.outputs.new_version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: ${{ steps.version.outputs.new_version }}
+          body: |
+            ## Installation
+
+            ### Using BRAT (Beta Reviewers Auto-update Tester)
+            1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from Obsidian Community Plugins
+            2. Open BRAT settings and click "Add Beta plugin"
+            3. Enter the repository URL: `${{ github.repository }}`
+            4. Enable the plugin in Community Plugins settings
+
+            ### Manual Installation
+            1. Download the files below (`main.js`, `manifest.json`, `styles.css`)
+            2. Create a folder in your vault: `.obsidian/plugins/obsidian-ai-agent/`
+            3. Place the downloaded files in the folder
+            4. Reload Obsidian and enable the plugin
+
+            ## Files
+          files: |
+            main.js
+            manifest.json
+            styles.css
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
