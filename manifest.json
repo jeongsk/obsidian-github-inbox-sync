@@ -1,0 +1,11 @@
+{
+	"id": "github-inbox-sync",
+	"name": "GitHub Inbox Sync",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Sync notes from GitHub inbox repository to your vault",
+	"author": "jeongsk",
+	"authorUrl": "https://github.com/jeongsk",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
