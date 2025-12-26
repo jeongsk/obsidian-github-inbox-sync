@@ -1,0 +1,24 @@
+/* GitHub Inbox Sync Plugin Styles */
+
+/* T026: 리본 아이콘 로딩 애니메이션 */
+.side-dock-ribbon-action.is-loading svg {
+  animation: github-inbox-sync-spin 1s linear infinite;
+}
+
+@keyframes github-inbox-sync-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 설정 화면 에러 표시 */
+.setting-item input.has-error {
+  border-color: var(--text-error);
+}
+
+.setting-item .setting-item-description.mod-warning {
+  color: var(--text-error);
+}
