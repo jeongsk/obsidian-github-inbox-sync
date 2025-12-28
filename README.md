@@ -66,7 +66,46 @@ GitHub 저장소에서 Obsidian vault로 마크다운 노트를 자동으로 동
 - **Command Palette**: `GitHub Inbox Sync: Sync now`
 - **Ribbon 아이콘**: 왼쪽 사이드바의 inbox 아이콘 클릭
 
-### n8n 연동 예시
+### n8n 연동
+
+GitHub 노드에서 `inbox/` 폴더에 파일 생성 후 커밋하면 플러그인이 자동으로 가져옵니다.
+
+#### 웹페이지 크롤링 워크플로우
+
+웹페이지 URL을 받아 크롤링하고, AI로 콘텐츠를 정제하여 GitHub에 마크다운으로 저장하는 워크플로우를 제공합니다.
+
+- **워크플로우 파일**: [`examples/n8n/n8n-crawl-to-github.json`](examples/n8n/n8n-crawl-to-github.json)
+
+**워크플로우 흐름:**
+
+```
+Webhook → Jina Reader → AI Agent → GitHub
+   │          │            │          │
+   │          │            │          └─ inbox/에 마크다운 저장
+   │          │            └─ 콘텐츠 정제 및 제목 추출
+   │          └─ 웹페이지 크롤링 (jina.ai)
+   └─ POST 요청으로 URL 수신
+```
+
+**설정 방법:**
+
+1. n8n에서 워크플로우 파일 임포트
+2. Credentials 설정:
+   - **OpenRouter API**: [OpenRouter](https://openrouter.ai/)에서 API 키 발급
+   - **GitHub API**: Personal Access Token (Contents 권한 필요)
+3. GitHub 노드에서 저장소 정보 수정:
+   - `owner`: GitHub 사용자명
+   - `repository`: 저장소 이름
+
+**사용법:**
+
+```shell
+curl -X POST https://YOUR_N8N_DOMAIN/webhook/crawl-to-github \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/article"}'
+```
+
+#### 커스텀 마크다운 생성 예시
 
 ```javascript
 // n8n Code 노드에서 마크다운 생성
@@ -83,8 +122,6 @@ ${items[0].json.content}
 
 return [{ json: { content: markdown } }];
 ```
-
-GitHub 노드에서 `inbox/` 폴더에 파일 생성 후 커밋하면 플러그인이 자동으로 가져옵니다.
 
 ## 주의사항
 

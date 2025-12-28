@@ -1,0 +1,208 @@
+{
+  "name": "웹페이지 크롤링 → GitHub 마크다운 저장",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crawl-to-github",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "webhookId": "crawl-to-github",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"processing\",\n  \"message\": \"URL received. Processing in background.\"\n}",
+        "options": {}
+      },
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://r.jina.ai/{{ $('Webhook').item.json.body.url }}",
+        "options": {}
+      },
+      "id": "http-request-1",
+      "name": "Jina Reader",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [448, 0],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "id": "openrouter-1",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [680, 224],
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"title\": \"example-article-title\",\n  \"cleanedContent\": \"# Article Title\\n\\nThis is the cleaned content...\"\n}"
+      },
+      "id": "output-parser-1",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [808, 224]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "mode": "name",
+          "value": "YOUR_GITHUB_USERNAME"
+        },
+        "repository": {
+          "mode": "name",
+          "value": "YOUR_GITHUB_REPO"
+        },
+        "filePath": "=inbox/{{ $json.output.title }}.md",
+        "fileContent": "={{ $json.output.cleanedContent }}",
+        "commitMessage": "=Add: {{ $json.output.title }}"
+      },
+      "id": "github-1",
+      "name": "GitHub",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [1024, 0],
+      "credentials": {
+        "githubApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "GitHub account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "### 📤 사용 방법\n\n  Credentials 설정 후 워크플로우를 활성화하고, 다음과 같이 호출하세요:\n\n```shell\n  curl -X POST https://YOUR_N8N_DOMAIN/webhook/crawl-to-github \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"url\": \"https://example.com/article\"}'\n```",
+        "height": 208,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-16, 160],
+      "typeVersion": 1,
+      "id": "sticky-note-1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=다음 웹페이지 콘텐츠를 정제해주세요:\n\n{{ $json.data }}\n\n작업:\n1. 불필요한 네비게이션, 광고, 푸터 등을 제거\n2. 마크다운 형식을 깔끔하게 정리\n3. 페이지 제목을 추출하거나, 적절한 제목이 없으면 콘텐츠를 기반으로 제목 생성\n4. 제목은 파일명으로 사용할 수 있도록 특수문자를 제거하고 공백은 하이픈(-)으로 대체\n\n결과를 JSON 형식으로 반환해주세요.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "당신은 웹페이지 콘텐츠를 정제하는 전문가입니다. 크롤링된 마크다운 콘텐츠에서 불필요한 요소를 제거하고, 깔끔하게 포맷팅하여 반환합니다. 반드시 JSON 형식으로 응답해야 합니다."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [672, 0],
+      "id": "ai-agent-1",
+      "name": "AI Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Jina Reader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jina Reader": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "executionTimeout": -1
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
