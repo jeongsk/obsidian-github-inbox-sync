@@ -105,10 +105,14 @@ curl -X POST https://YOUR_N8N_DOMAIN/webhook/crawl-to-github \
   -d '{"url": "https://example.com/article"}'
 ```
 
-#### 커스텀 마크다운 생성 예시
+#### 커스텀 워크플로우 만들기
+
+제공된 워크플로우 대신 직접 워크플로우를 구성하려면 다음과 같이 설정합니다.
+
+**1. Code 노드에서 마크다운 생성:**
 
 ```javascript
-// n8n Code 노드에서 마크다운 생성
+// n8n Code 노드
 const markdown = `---
 created: ${new Date().toISOString()}
 source: n8n
@@ -120,8 +124,24 @@ tags: [auto-generated]
 ${items[0].json.content}
 `;
 
-return [{ json: { content: markdown } }];
+return [{
+  json: {
+    filename: items[0].json.title.replace(/[^a-zA-Z0-9가-힣\s-]/g, '').replace(/\s+/g, '-'),
+    content: markdown
+  }
+}];
 ```
+
+**2. GitHub 노드 설정:**
+
+| 설정 | 값 |
+|------|-----|
+| Resource | File |
+| Operation | Create |
+| Repository | `owner/repo` |
+| File Path | `inbox/{{ $json.filename }}.md` |
+| File Content | `{{ $json.content }}` |
+| Commit Message | `Add: {{ $json.filename }}` |
 
 ## 주의사항
 
