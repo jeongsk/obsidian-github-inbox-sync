@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS: GitHubInboxSyncSettings = {
   sourcePath: 'inbox',
   targetPath: 'inbox',
   syncOnStartup: true,
+  startupSyncDelay: 3,
   autoSync: true,
   syncInterval: 5,
   duplicateHandling: 'skip',
@@ -54,6 +55,12 @@ export const CONFIG = {
   // State Management
   MAX_SYNC_HISTORY: 100,
   SYNC_RECORD_RETENTION_DAYS: 90,
+
+  // Startup Sync
+  MIN_STARTUP_SYNC_DELAY_SECONDS: 1,
+  MAX_STARTUP_SYNC_DELAY_SECONDS: 30,
+  DEFAULT_STARTUP_SYNC_DELAY_SECONDS: 3,
+  LAYOUT_READY_FALLBACK_TIMEOUT_MS: 30000,
 
   // File Processing
   PROCESSED_FOLDER: 'processed',

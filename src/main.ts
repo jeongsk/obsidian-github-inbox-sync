@@ -3,7 +3,7 @@
  */
 
 import { Notice, Plugin, setIcon } from 'obsidian';
-import { DEFAULT_SETTINGS, MESSAGES } from './constants';
+import { CONFIG, DEFAULT_SETTINGS, MESSAGES } from './constants';
 import { GitHubInboxSyncSettingTab } from './ui/settings-tab';
 import { GitHubService } from './services/github-service';
 import { StateService } from './services/state-service';
@@ -21,15 +21,17 @@ export default class GitHubInboxSyncPlugin extends Plugin {
   private ribbonIconEl: HTMLElement | null = null;
   private autoSyncIntervalId: number | null = null;
 
+  // 시작 동기화 상태
+  private startupSyncTimeoutId: number | null = null;
+  private startupSyncFallbackId: number | null = null;
+  private startupSyncExecuted: boolean = false;
+
   async onload() {
     await this.loadSettings();
     await this.initializeServices();
 
-    // T022: 시작 시 동기화
-    if (this.settings.syncOnStartup && this.settings.githubToken && this.settings.repository) {
-      // 약간의 지연 후 시작 (Obsidian 초기화 완료 대기)
-      setTimeout(() => this.performSync('startup'), 2000);
-    }
+    // 시작 동기화 초기화
+    this.initStartupSync();
 
     // T024: 리본 아이콘 추가
     this.ribbonIconEl = this.addRibbonIcon('inbox', 'GitHub Inbox Sync', async () => {
@@ -64,6 +66,7 @@ export default class GitHubInboxSyncPlugin extends Plugin {
   }
 
   onunload() {
+    this.cancelStartupSync();
     this.stopAutoSync();
   }
 
@@ -107,6 +110,12 @@ export default class GitHubInboxSyncPlugin extends Plugin {
    * 동기화 실행
    */
   async performSync(trigger: 'startup' | 'manual' | 'interval'): Promise<void> {
+    // 수동 동기화 시 시작 동기화 취소
+    if (trigger === 'manual') {
+      this.cancelStartupSync();
+      this.startupSyncExecuted = true;
+    }
+
     if (!this.syncService) {
       new Notice('플러그인이 초기화되지 않았습니다');
       return;
@@ -154,6 +163,62 @@ export default class GitHubInboxSyncPlugin extends Plugin {
     } else {
       setIcon(this.ribbonIconEl, 'inbox');
       this.ribbonIconEl.removeClass('is-loading');
+    }
+  }
+
+  /**
+   * 시작 동기화 초기화
+   */
+  private initStartupSync(): void {
+    if (!this.settings.syncOnStartup) return;
+    if (!this.settings.githubToken || !this.settings.repository) return;
+
+    // 폴백 타이머 설정 (30초)
+    this.startupSyncFallbackId = window.setTimeout(() => {
+      if (!this.startupSyncExecuted) {
+        this.scheduleStartupSync();
+      }
+    }, CONFIG.LAYOUT_READY_FALLBACK_TIMEOUT_MS);
+
+    // 레이아웃 준비 시 동기화 예약
+    this.app.workspace.onLayoutReady(() => {
+      // 폴백 타이머 취소
+      if (this.startupSyncFallbackId !== null) {
+        window.clearTimeout(this.startupSyncFallbackId);
+        this.startupSyncFallbackId = null;
+      }
+
+      this.scheduleStartupSync();
+    });
+  }
+
+  /**
+   * 시작 동기화 예약
+   */
+  private scheduleStartupSync(): void {
+    if (this.startupSyncExecuted) return;
+    if (this.startupSyncTimeoutId !== null) return;
+
+    const delayMs = this.settings.startupSyncDelay * 1000;
+
+    this.startupSyncTimeoutId = window.setTimeout(() => {
+      this.startupSyncExecuted = true;
+      this.startupSyncTimeoutId = null;
+      this.performSync('startup');
+    }, delayMs);
+  }
+
+  /**
+   * 시작 동기화 취소
+   */
+  private cancelStartupSync(): void {
+    if (this.startupSyncTimeoutId !== null) {
+      window.clearTimeout(this.startupSyncTimeoutId);
+      this.startupSyncTimeoutId = null;
+    }
+    if (this.startupSyncFallbackId !== null) {
+      window.clearTimeout(this.startupSyncFallbackId);
+      this.startupSyncFallbackId = null;
     }
   }
 

@@ -41,6 +41,18 @@ export function isValidSyncInterval(interval: number): boolean {
 }
 
 /**
+ * 시작 동기화 지연 시간 범위 검증
+ */
+export function isValidStartupSyncDelay(value: number): boolean {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= CONFIG.MIN_STARTUP_SYNC_DELAY_SECONDS &&
+    value <= CONFIG.MAX_STARTUP_SYNC_DELAY_SECONDS
+  );
+}
+
+/**
  * 경로 형식 검증
  */
 export function isValidPath(path: string): boolean {

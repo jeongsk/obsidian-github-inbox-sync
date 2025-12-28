@@ -22,6 +22,7 @@ export interface GitHubInboxSyncSettings {
 
   // 동기화 옵션
   syncOnStartup: boolean;
+  startupSyncDelay: number; // 시작 동기화 지연 시간 (초)
   autoSync: boolean;
   syncInterval: number;
 

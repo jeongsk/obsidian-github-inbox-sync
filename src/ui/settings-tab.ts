@@ -139,8 +139,32 @@ export class GitHubInboxSyncSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.syncOnStartup = value;
             await this.plugin.saveSettings();
+            this.display(); // UI 새로고침 (지연 시간 설정 표시/숨김)
           })
       );
+
+    // 시작 동기화 지연 시간 (syncOnStartup 활성화 시에만 표시)
+    if (this.plugin.settings.syncOnStartup) {
+      new Setting(containerEl)
+        .setName('시작 동기화 지연 시간')
+        .setDesc(
+          `레이아웃 준비 후 동기화까지 대기 시간 (${CONFIG.MIN_STARTUP_SYNC_DELAY_SECONDS}-${CONFIG.MAX_STARTUP_SYNC_DELAY_SECONDS}초)`
+        )
+        .addSlider((slider) =>
+          slider
+            .setLimits(
+              CONFIG.MIN_STARTUP_SYNC_DELAY_SECONDS,
+              CONFIG.MAX_STARTUP_SYNC_DELAY_SECONDS,
+              1
+            )
+            .setValue(this.plugin.settings.startupSyncDelay)
+            .setDynamicTooltip()
+            .onChange(async (value) => {
+              this.plugin.settings.startupSyncDelay = value;
+              await this.plugin.saveSettings();
+            })
+        );
+    }
 
     new Setting(containerEl)
       .setName('자동 동기화')
