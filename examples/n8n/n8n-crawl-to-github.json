@@ -70,7 +70,7 @@
           "value": "YOUR_GITHUB_REPO"
         },
         "filePath": "=inbox/{{ $json.output.title.replace(/[/\\\\:*?\"<>|]/g, '-') }}.md",
-        "fileContent": "=---\nsource: {{ $('Webhook').item.json.body.url }}\ncreated: {{ new Date().toISOString() }}\nmodified: {{ new Date().toISOString() }}\n---\n{{ $json.output.cleanedContent }}",
+        "fileContent": "=---\nsource: {{ $('Webhook').item.json.body.url }}\ncreated: {{ $now.format('yyyy-MM-dd HH:mm:ss') }}\nmodified: {{ $now.format('yyyy-MM-dd HH:mm:ss') }}\n---\n{{ $json.output.cleanedContent }}",
         "commitMessage": "=Add: {{ $json.output.title }}"
       },
       "id": "github-1",
