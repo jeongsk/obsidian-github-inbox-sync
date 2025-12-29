@@ -18,18 +18,6 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "{\n  \"status\": \"processing\",\n  \"message\": \"URL received. Processing in background.\"\n}",
-        "options": {}
-      },
-      "id": "respond-1",
-      "name": "Respond to Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [224, 0]
-    },
-    {
-      "parameters": {
         "url": "=https://r.jina.ai/{{ $('Webhook').item.json.body.url }}",
         "options": {}
       },
@@ -43,8 +31,10 @@
     },
     {
       "parameters": {
-        "model": "google/gemini-2.5-flash-lite",
-        "options": {}
+        "model": "google/gemini-2.0-flash-exp:free",
+        "options": {
+          "responseFormat": "json_object"
+        }
       },
       "id": "openrouter-1",
       "name": "OpenRouter Chat Model",
@@ -79,8 +69,8 @@
           "mode": "name",
           "value": "YOUR_GITHUB_REPO"
         },
-        "filePath": "=inbox/{{ $json.output.title }}.md",
-        "fileContent": "={{ $json.output.cleanedContent }}",
+        "filePath": "=inbox/{{ $json.output.title.replace(/[/\\\\:*?\"<>|]/g, '-') }}.md",
+        "fileContent": "=---\nsource: {{ $('Webhook').item.json.body.url }}\ncreated: {{ new Date().toISOString() }}\nmodified: {{ new Date().toISOString() }}\n---\n{{ $json.output.cleanedContent }}",
         "commitMessage": "=Add: {{ $json.output.title }}"
       },
       "id": "github-1",
@@ -88,6 +78,7 @@
       "type": "n8n-nodes-base.github",
       "typeVersion": 1.1,
       "position": [1024, 0],
+      "webhookId": "3b3f7123-4c83-4f50-9ffb-fd0fce037bab",
       "credentials": {
         "githubApi": {
           "id": "YOUR_CREDENTIAL_ID",
@@ -98,8 +89,8 @@
     },
     {
       "parameters": {
-        "content": "### 📤 사용 방법\n\n  Credentials 설정 후 워크플로우를 활성화하고, 다음과 같이 호출하세요:\n\n```shell\n  curl -X POST https://YOUR_N8N_DOMAIN/webhook/crawl-to-github \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"url\": \"https://example.com/article\"}'\n```",
-        "height": 208,
+        "content": "### 📤 사용 방법\n\nCredentials 설정 후 워크플로우를 활성화하고, 다음과 같이 호출하세요:\n\n```shell\ncurl -X POST https://YOUR_N8N_DOMAIN/webhook/crawl-to-github \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"url\": \"https://example.com/article\"}'\n```\n\n### ⚙️ 설정 체크리스트\n- [ ] OpenRouter API credentials 설정\n- [ ] GitHub API credentials 설정\n- [ ] GitHub owner/repository 값 변경\n- [ ] Webhook URL 확인 (YOUR_N8N_DOMAIN)\n\n### 🔧 개선사항\n- 파일명 특수문자 자동 처리\n- ISO 8601 날짜 형식 적용\n- 타임스탬프로 중복 파일 방지",
+        "height": 400,
         "width": 608
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -111,7 +102,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=다음 웹페이지 콘텐츠를 정제해주세요:\n\n{{ $json.data }}\n\n작업:\n1. 불필요한 네비게이션, 광고, 푸터 등을 제거\n2. 마크다운 형식을 깔끔하게 정리\n3. 페이지 제목을 추출하거나, 적절한 제목이 없으면 콘텐츠를 기반으로 제목 생성\n4. 제목은 파일명으로 사용할 수 있도록 특수문자를 제거하고 공백은 하이픈(-)으로 대체\n\n결과를 JSON 형식으로 반환해주세요.",
+        "text": "=다음 웹페이지 콘텐츠를 정제해주세요:\n\n<webpage contents>\n{{ $json.data }}\n</webpage contents>\n\n<tasks>\n1. 불필요한 네비게이션, 광고, 푸터 등을 제거\n2. 마크다운 형식을 깔끔하게 정리\n3. 페이지 제목을 추출하거나, 적절한 제목이 없으면 콘텐츠를 기반으로 제목 생성\n4. 제목은 파일명으로 사용할 수 있도록 처리:\n   - 영문: 소문자로 변환, 공백은 하이픈(-)으로 대체\n   - 한글: 공백은 하이픈(-)으로 대체\n   - 특수문자(/, \\, :, *, ?, \", <, >, |) 제거\n   - 예시: \"How to Build a REST API\" → \"how-to-build-a-rest-api\"\n   - 예시: \"깃허브 사용법 (초보자용)\" → \"깃허브-사용법-초보자용\"\n5. 중복 방지를 위해 제목에 타임스탬프 추가: \"title-{{ new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').split('Z')[0] }}\"\n</tasks>\n\n<output format>\n결과를 JSON 형식으로 반환해주세요.\n</output format>",
         "hasOutputParser": true,
         "options": {
           "systemMessage": "당신은 웹페이지 콘텐츠를 정제하는 전문가입니다. 크롤링된 마크다운 콘텐츠에서 불필요한 요소를 제거하고, 깔끔하게 포맷팅하여 반환합니다. 반드시 JSON 형식으로 응답해야 합니다."
@@ -121,23 +112,25 @@
       "typeVersion": 3,
       "position": [672, 0],
       "id": "ai-agent-1",
-      "name": "AI Agent"
+      "name": "AI Agent",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"title\": $json.output.title, \"message\": \"파일이 GitHub에 성공적으로 저장되었습니다.\", \"repository\": $('GitHub').params.owner + '/' + $('GitHub').params.repository, \"filePath\": 'inbox/' + $json.output.title.replace(/[/\\\\:*?\\\"<>|]/g, '-') + '.md' } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1024, 80],
+      "id": "afc3cf4d-5fdb-4082-bb91-40213139b343",
+      "name": "Respond to Webhook"
     }
   ],
   "pinData": {},
   "connections": {
     "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Respond to Webhook": {
       "main": [
         [
           {
@@ -189,6 +182,24 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -199,10 +210,13 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false,
     "timeSavedMode": "fixed",
-    "executionTimeout": -1
+    "executionTimeout": 300
   },
+  "versionId": "1a4df79b-258b-49cb-8ac7-acc0a17c32de",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fcd018c589f0738f053cc4c03e304e3f6403cc1e21b596ffc0cbf5dc1f4ef4a3"
   },
+  "id": "j2vq6oU8YndWEZIo",
   "tags": []
 }
