@@ -117,8 +117,6 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"success\": true, \"title\": $json.output.title, \"message\": \"파일이 GitHub에 성공적으로 저장되었습니다.\", \"repository\": $('GitHub').params.owner + '/' + $('GitHub').params.repository, \"filePath\": 'inbox/' + $json.output.title.replace(/[/\\\\:*?\\\"<>|]/g, '-') + '.md' } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
