@@ -80,12 +80,22 @@ export class GitHubService {
     const path = this.sourcePath || '';
     const url = `${CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/contents/${path}?ref=${this.branch}`;
 
-    const response = await retryWithBackoff(async () => {
-      return await requestUrl({
-        url,
-        headers: this.getHeaders(),
+    let response;
+    try {
+      response = await retryWithBackoff(async () => {
+        return await requestUrl({
+          url,
+          headers: this.getHeaders(),
+        });
       });
-    });
+    } catch (error) {
+      // 폴더가 존재하지 않는 경우 (404) 빈 배열 반환
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('404')) {
+        return [];
+      }
+      throw error;
+    }
 
     // 빈 폴더인 경우
     if (!response.json || !Array.isArray(response.json)) {
