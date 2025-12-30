@@ -1,6 +1,6 @@
 {
   "name": "obsidian-github-inbox-sync",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Sync notes from GitHub inbox to your Obsidian vault",
   "main": "main.js",
   "engines": {
