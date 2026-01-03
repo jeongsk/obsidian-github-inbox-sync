@@ -136,8 +136,12 @@ export default class GitHubInboxSyncPlugin extends Plugin {
 
       if (this.settings.showNotifications) {
         if (result.success) {
-          new Notice(MESSAGES.syncSuccess(result.filesAdded));
+          // 수동 동기화일 때만 성공 알림 표시
+          if (trigger === 'manual') {
+            new Notice(MESSAGES.syncSuccess(result.filesAdded));
+          }
         } else {
+          // 에러 알림은 항상 표시
           new Notice(MESSAGES.syncError(result.errors.join(', ')));
         }
       }
