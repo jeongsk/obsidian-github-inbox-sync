@@ -7,6 +7,7 @@ import type GitHubInboxSyncPlugin from '../main';
 import { CONFIG, MESSAGES } from '../constants';
 import { isValidRepository, isValidSyncInterval } from '../utils/validation';
 import type { DuplicateHandling } from '../types';
+import { FolderSuggest } from './folder-suggest';
 
 /**
  * 플러그인 설정 탭
@@ -117,15 +118,17 @@ export class GitHubInboxSyncSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('대상 폴더 (Vault)')
       .setDesc('Obsidian vault 내 저장 폴더')
-      .addText((text) =>
-        text
+      .addSearch((search) => {
+        search
           .setPlaceholder('inbox')
           .setValue(this.plugin.settings.targetPath)
           .onChange(async (value) => {
             this.plugin.settings.targetPath = value;
             await this.plugin.saveSettings();
-          })
-      );
+          });
+
+        new FolderSuggest(this.app, search.inputEl);
+      });
 
     // === 동기화 옵션 섹션 ===
     containerEl.createEl('h3', { text: '동기화 옵션' });
