@@ -28,3 +28,4 @@ PRD.md
 .claude/*.local.json
 !CLAUDE.md
 CLAUDE.local.md
+.serena/
